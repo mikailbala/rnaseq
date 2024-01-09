@@ -16,7 +16,7 @@ params.outdir = "ORFseq_results"
 log.info """\
     R N A S E Q   P I P E L I N E
     ===================================
-    reads                : ${params.reads}
+    reads                : ${params.input}
     output dir           : ${params.outdir}
     current adapter      : ${params.adaptor}
     annotation           : ${params.gtf_file}
