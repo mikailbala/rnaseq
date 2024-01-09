@@ -273,7 +273,7 @@ workflow {
         .fromFilePairs(params.input, checkIfExists: true)
         .set { ch_fastq }
     
-    index_ch = fromPath(param.genome)
+    index_ch = fromPath(params.genome)
     trim_ch = TRIMMOMATIC(ch_fastq ,params.adaptor)
     align_ch = STAR_ALIGN(trim_ch.out[0], index_ch)
     featurecounts_ch = SUBREAD_FEATURECOUNTS(align_ch.out[0], parmas.gtf_file)
