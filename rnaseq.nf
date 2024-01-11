@@ -277,14 +277,14 @@ workflow {
         .set {index_ch}
     trim_ch = TRIMMOMATIC(ch_fastq ,params.adaptor)
     align_ch = STAR_ALIGN(trim_ch.out.trimmed_reads, index_ch)
-    featurecounts_ch = SUBREAD_FEATURECOUNTS(align_ch.out.bam_sorted, parmas.gtf_file)
+    featurecounts_ch = SUBREAD_FEATURECOUNTS(align_ch.out.bam_sorted, params.gtf_file)
     qualimap_ch = QUALIMAP_RNASEQ(align_ch.out.bam_sorted, params.species)
 
     // pre processing QC
     preTrimFastqc_ch = FASTQC(ch_fastq)
     MULTIQC((preTrimFastqc_ch).collect())
 
-    // [post trim QC
+    // post trim QC
     postTrimFastqc_ch = FASTQC(trim_ch)
     MULTIQC((postTrimFastqc_ch).collect())
 }
