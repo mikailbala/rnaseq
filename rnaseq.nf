@@ -282,10 +282,6 @@ workflow {
     featurecounts_ch = SUBREAD_FEATURECOUNTS(align_ch, params.gtf_file)
     qualimap_ch = QUALIMAP_RNASEQ(align_ch, params.species)
 
-    // pre processing QC
-    preTrimFastqc_ch = FASTQC(ch_fastq)
-    MULTIQC((preTrimFastqc_ch).collect())
-
     // post trim QC
     postTrimFastqc_ch = FASTQC(trim_ch)
     MULTIQC((postTrimFastqc_ch).collect())
