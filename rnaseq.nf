@@ -6,7 +6,7 @@ nextflow.enable.dsl=2
     Workflow parameters
 ========================================================================================
 */
-params.input = "/vcu_gpfs2/home/mccbnfolab/balami/projects/wang_shawn/wang_shawn231101/raw_data/*_{R1,R2}.fastq.gz"
+params.input = "/vcu_gpfs2/home/mccbnfolab/balami/projects/wang_shawn/wang_shawn231101/raw_data/*_{1,2}.fastq.gz"
 params.adaptor = "/vcu_gpfs2/home/morecockcm/bin/trimmomatic-0.39/adapters/TruSeq3-PE.fa:2:30:10"
 params.genome = "/vcu_gpfs2/home/morecockcm/rnaseq_pipeline/genome_indexes/mouse/GRCm39_mm39/ref/"
 params.gtf_file = "/vcu_gpfs2/home/balami/orfseq/reference/Streptococcus_sanguinis_SK36R_6908.current.gtf"
