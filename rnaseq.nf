@@ -7,7 +7,7 @@ nextflow.enable.dsl=2
 ========================================================================================
 */
 params.input = "/vcu_gpfs2/home/mccbnfolab/radhakrishnan_RNASeq_09-08-2022/raw/*_{R1,R2}_*.fastq.gz"
-params.adaptor = "/vcu_gpfs2/home/morecockcm/bin/trimmomatic-0.39/adapters/TruSeq3-PE.fa:2:30:10"
+params.adaptor = "/vcu_gpfs2/home/mccbnfolab/balami/bin/Trimmomatic-0.39/adapters/TruSeq3-PE.fa:2:30:10"
 params.genome = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/ref/"
 params.gtf_file = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/Mus_musculus.GRCm39.108.gtf"
 params.species = "MOUSE"
