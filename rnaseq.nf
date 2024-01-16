@@ -48,13 +48,11 @@ process TRIMMOMATIC {
     path "versions.yml"               , emit: versions
 
     script:
-    def prefix = ${reads.baseName}
-
     """
-    trimmomatic PE -threads $task.cpus -trimlog ${prefix}.log \\
+    trimmomatic PE -threads $task.cpus -trimlog ${reads.baseName}.log \\
         $reads \\
         ILLUMINACLIP:/vcu_gpfs2/home/mccbnfolab/balami/bin/Trimmomatic-0.39/adapters/TruSeq3-PE.fa:2:30:10 \\
-        -baseout ${prefix}_.paired.trimmed.fastq.gz
+        -baseout ${reads.baseName}_.paired.trimmed.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
