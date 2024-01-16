@@ -7,6 +7,7 @@ nextflow.enable.dsl=2
 ========================================================================================
 */
 params.input = "/vcu_gpfs2/home/mccbnfolab/radhakrishnan_RNASeq_09-08-2022/raw/*_{R1,R2}_*.fastq.gz"
+params.adaptor = "/vcu_gpfs2/home/mccbnfolab/balami/bin/Trimmomatic-0.39/adapters/TruSeq3-PE.fa"
 params.genome = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/ref/"
 params.gtf_file = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/Mus_musculus.GRCm39.108.gtf"
 params.species = "MOUSE"
@@ -17,6 +18,7 @@ log.info """\
     ===================================
     reads                : ${params.input}
     output dir           : ${params.outdir}
+    current adapter      : ${params.adaptor}
     annotation           : ${params.gtf_file}
     species              : ${params.species}
     """
@@ -41,24 +43,21 @@ process TRIMMOMATIC {
 
     input:
     path reads
+    path adaptor
 
     output:
     path "*.paired.trim*.fastq.gz"    , emit: trimmed_reads
-    path "*.unpaired.trim_*.fastq.gz" , optional:true, emit: unpaired_reads
     path "*.log"                      , emit: log
-    path "*.summary"                  , emit: summary
     path "versions.yml"               , emit: versions
 
     script:
     def prefix = ${reads.baseName}
 
     """
-    trimmomatic $trimmed -threads $task.cpus -trimlog ${prefix}.log \\
-        -summary ${prefix}.summary \\
-        ILLUMINACLIP:/vcu_gpfs2/home/mccbnfolab/balami/bin/Trimmomatic-0.39/adapters/TruSeq3-PE.fa:2:30:10 \\
+    trimmomatic PE -threads $task.cpus -trimlog ${prefix}.log \\
         $reads \\
-        $output \\
-        $qual_trim
+        ILLUMINACLIP:${adaptor}:2:30:10 \\
+        -baseout ${prefix}_.paired.trimmed.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -272,7 +271,10 @@ workflow {
     Channel
         .fromPath(params.genome, checkIfExists: true)
         .set {ch_index}
-    TRIMMOMATIC(ch_fastq)
+    Channel
+        .fromPath(params.adaptor, checkIfExists: true)
+        .set {ch_adaptor}
+    TRIMMOMATIC(ch_fastq, ch_adaptor)
     trim_ch = TRIMMOMATIC.out.trimmed_reads
     STAR_ALIGN(trim_ch, ch_index)
     align_ch = STAR_ALIGN.out.bam_sorted
