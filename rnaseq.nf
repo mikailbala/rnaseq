@@ -11,7 +11,7 @@ params.adaptor = "/vcu_gpfs2/home/morecockcm/bin/trimmomatic-0.39/adapters/TruSe
 params.genome = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/ref/"
 params.gtf_file = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/Mus_musculus.GRCm39.108.gtf"
 params.species = "MOUSE"
-params.outdir = "ORFseq_results"
+params.outdir = "RNAseq_results"
 
 log.info """\
     R N A S E Q   P I P E L I N E
@@ -35,6 +35,7 @@ log.info """\
 process TRIMMOMATIC {
     tag "Trimming unwanted bases"
     cpus 16
+    publishDir "$params.outdir/Trimd", mode: 'copy'
     
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/trimmomatic:0.39--hdfd78af_2':
@@ -274,10 +275,13 @@ workflow {
         .set { ch_fastq }
     Channel
         .fromPath(params.genome, checkIfExists: true)
-        .set {index_ch}
-    TRIMMOMATIC(ch_fastq ,params.adaptor)
+        .set {ch_index}
+    Channel
+        .fromPath(params.adaptor, checkIfExists: true)
+        .set {ch_adaptor}
+    TRIMMOMATIC(ch_fastq, ch_adaptor)
     trim_ch = TRIMMOMATIC.out.trimmed_reads
-    STAR_ALIGN(trim_ch, index_ch)
+    STAR_ALIGN(trim_ch, ch_index)
     align_ch = STAR_ALIGN.out.bam_sorted
     featurecounts_ch = SUBREAD_FEATURECOUNTS(align_ch, params.gtf_file)
     qualimap_ch = QUALIMAP_RNASEQ(align_ch, params.species)
