@@ -43,7 +43,7 @@ process TRIMMOMATIC {
     path reads
 
     output:
-    path "*.paired.trim*.fastq.gz"    , emit: trimmed_reads
+    path "*.paired.trimmed.fastq.gz"  , emit: trimmed_reads
     path "*.log"                      , emit: log
     path "versions.yml"               , emit: versions
 
@@ -263,7 +263,7 @@ workflow {
     // Create input channel from input file provided through params.input
     //
     Channel
-        .fromFilePairs(params.input, checkIfExists: true)
+        .fromPath(params.input, checkIfExists: true)
         .set { ch_fastq }
     Channel
         .fromPath(params.genome, checkIfExists: true)
