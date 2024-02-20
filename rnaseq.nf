@@ -6,7 +6,7 @@ nextflow.enable.dsl=2
     Workflow parameters
 ========================================================================================
 */
-params.input = "/vcu_gpfs2/home/mccbnfolab/radhakrishnan_RNASeq_09-08-2022/raw/*_{R1,R2}_*.fastq.gz"
+params.input = "/vcu_gpfs2/home/mccbnfolab/nextflow_pdxpipe_dev/raw_pdx_testdata/*_{R1,R2}_*.fastq.gz"
 params.genome = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/ref/"
 params.gtf_file = "/vcu_gpfs2/home/mccbnfolab/balami/genome_indexes/mouse/GRCm39_mm39/Mus_musculus.GRCm39.108.gtf"
 params.species = "MOUSE"
@@ -49,10 +49,10 @@ process TRIMMOMATIC {
 
     script:
     """
-    trimmomatic PE -threads $task.cpus -trimlog ${reads.baseName}.log \\
-        $reads \\
+    trimmomatic PE -threads $task.cpus -trimlog ${reads}.log \\
+        -basein ${reads} \\
         ILLUMINACLIP:/vcu_gpfs2/home/mccbnfolab/balami/bin/Trimmomatic-0.39/adapters/TruSeq3-PE.fa:2:30:10 \\
-        -baseout ${reads.baseName}_.paired.trimmed.fastq.gz
+        -baseout ${reads}.paired.trimmed.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -79,11 +79,9 @@ process SUBREAD_FEATURECOUNTS {
     path "versions.yml"               , emit: versions
 
     script:
-    def prefix = ${bam.baseName}
-
     """
     featureCounts -T $task.cpus -F GTF -t exon -g gene_id -p --countReadPairs \\
-        -a $annotation -o ${prefix}.featureCounts.txt \\
+        -a $annotation -o ${bams.baseName}.featureCounts.txt \\
         ${bams.join(' ')}
 
     cat <<-END_VERSIONS > versions.yml
@@ -102,16 +100,14 @@ process QUALIMAP_RNASEQ {
         'biocontainers/qualimap:2.2.2d--1' }"
 
     input:
-    path bam
+    path bams
     val species
 
     output:
-    path "${prefix}"                  , emit: results
+    path "${bams.baseName}"                  , emit: results
     path  "versions.yml"              , emit: versions
 
     script:
-    def prefix = ${bam.baseName}
-
     """
     qualimap \\
         --java-mem-size=2G \\
@@ -119,8 +115,8 @@ process QUALIMAP_RNASEQ {
         -bam $bam \\
         -gd $species \\
         -nt 12 -c \\
-        -outfile ${prefix}_bamqc.pdf -outformat PDF:HTML \\
-        -outdir $prefix
+        -outfile ${bams.baseName}_bamqc.pdf -outformat PDF:HTML \\
+        -outdir $bams.baseName
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -130,7 +126,7 @@ process QUALIMAP_RNASEQ {
 
     stub:
     """
-    mkdir ${prefix}
+    mkdir ${bams.baseName}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -141,7 +137,7 @@ process QUALIMAP_RNASEQ {
 
 
 process STAR_ALIGN {
-    tag "Aligning using Star"
+    tag "STAR alignment on a list of FastQ files"
     cpus 16
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -153,7 +149,6 @@ process STAR_ALIGN {
     path index
 
     output:
-    path '*sortedByCoord.out.bam'   , emit: bam_sorted
     path '*Log.final.out'           , emit: log_final
     path '*Log.out'                 , emit: log_out
     path '*Log.progress.out'        , emit: log_progress
@@ -164,17 +159,19 @@ process STAR_ALIGN {
     path '*.out.sam'                , optional:true, emit: sam
 
     script:
-    def prefix = ${reads.baseName}
-    def out_sam_type = --outSAMtype BAM SortedByCoordinate
-    
     """
     STAR \\
         --genomeDir $index \\
         --readFilesIn ${reads} \\
         --runThreadN $task.cpus \\
-        --outFileNamePrefix $prefix. \\
+        --outFileNamePrefix $reads.baseName. \\
         --readFilesCommand zcat \\
-        $out_sam_type
+        --outSAMtype BAM Unsorted \\
+        --outSAMorder Paired \\
+        --outReadsUnmapped Fastx \\
+        --quantMode TranscriptomeSAM \\
+        --outFilterMultimapNmax 1
+	
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -185,16 +182,14 @@ process STAR_ALIGN {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = ${reads.baseName}
     """
     touch ${prefix}Xd.out.bam
     touch ${prefix}.Log.final.out
     touch ${prefix}.Log.out
     touch ${prefix}.Log.progress.out
-    touch ${prefix}.sortedByCoord.out.bam
     touch ${prefix}.toTranscriptome.out.bam
     touch ${prefix}.Aligned.unsort.out.bam
-    touch ${prefix}.Aligned.sortedByCoord.out.bam
     touch ${prefix}.tab
     touch ${prefix}.SJ.out.tab
     touch ${prefix}.ReadsPerGene.out.tab
@@ -261,7 +256,7 @@ workflow {
     // Create input channel from input file provided through params.input
     //
     Channel
-        .fromPath(params.input, checkIfExists: true)
+        .fromFilePairs(params.input, checkIfExists: true)
         .set { ch_fastq }
     Channel
         .fromPath(params.genome, checkIfExists: true)
